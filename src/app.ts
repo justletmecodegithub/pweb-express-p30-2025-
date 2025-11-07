@@ -21,9 +21,13 @@ app.use('/books', bookRoutes);
 app.use('/genre', genreRoutes);
 app.use('/transactions', transactionRoutes);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+// Health check - SESUAI DOKUMENTASI
+app.get('/health-check', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Hello World!', 
+    date: new Date().toDateString() 
+  });
 });
 
 app.listen(PORT, () => {

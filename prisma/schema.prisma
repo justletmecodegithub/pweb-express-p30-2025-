@@ -1,84 +1,64 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            Int       @id @default(autoincrement())
-  username      String    @unique
-  email         String    @unique
-  password      String
-  name          String
-  role          UserRole  @default(CUSTOMER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  transactions  Transaction[]
-  
-  @@map("users")
+model users {
+  id         String   @id @default(uuid())
+  username   String
+  password   String
+  email      String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  orders     orders[]
 }
 
-model Book {
-  id            Int       @id @default(autoincrement())
-  title         String    @unique
-  author        String
-  description   String?
-  price         Float
-  stock         Int       @default(0)
-  genreId       Int
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  genre         Genre       @relation(fields: [genreId], references: [id], onDelete: Restrict)
-  transactions  TransactionItem[]
-  
-  @@map("books")
+model genres {
+  id         String    @id @default(uuid())
+  name       String    @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  books      books[]
 }
 
-model Genre {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  books       Book[]
-  
-  @@map("genres")
+model books {
+  id               String        @id @default(uuid())
+  title            String        @unique
+  writer           String
+  publisher        String
+  publication_year Int
+  description      String?
+  price            Float
+  stock_quantity   Int
+  genre_id         String
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @updatedAt
+  deleted_at       DateTime?
+  genre            genres        @relation(fields: [genre_id], references: [id])
+  order_items      order_items[]
 }
 
-model Transaction {
-  id        Int                 @id @default(autoincrement())
-  userId    Int
-  total     Float
-  createdAt DateTime            @default(now())
-  
-  user      User                @relation(fields: [userId], references: [id])
-  items     TransactionItem[]
-  
-  @@map("transactions")
+model orders {
+  id          String        @id @default(uuid())
+  user_id     String
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  order_items order_items[]
+  user        users         @relation(fields: [user_id], references: [id])
 }
 
-model TransactionItem {
-  id             Int         @id @default(autoincrement())
-  transactionId  Int
-  bookId         Int
-  quantity       Int
-  price          Float
-  
-  transaction    Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  book           Book        @relation(fields: [bookId], references: [id])
-  
-  @@map("transaction_items")
-}
-
-enum UserRole {
-  ADMIN
-  CUSTOMER
+model order_items {
+  id         String   @id @default(uuid())
+  quantity   Int
+  order_id   String
+  book_id    String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  book       books    @relation(fields: [book_id], references: [id])
+  order      orders   @relation(fields: [order_id], references: [id])
 }

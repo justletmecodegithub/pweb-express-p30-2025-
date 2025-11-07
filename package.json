@@ -1,7 +1,7 @@
 {
   "name": "pweb-express-p30-2025-",
   "version": "1.0.0",
-  "description": "IT Literature Shop Backend - Kelompok P30",
+  "desc": "IT Literature Shop Backend - Kelompok P30",
   "main": "dist/app.js",
   "scripts": {
     "dev": "ts-node-dev src/app.ts",
@@ -21,14 +21,14 @@
     "prisma",
     "postgresql"
   ],
-  "author": "Muhammad Ahsani Taqwiim Rakhman & Andi Naufal & Salsa bil ula ",
+  "author": "Muhammad Ahsani Taqwiim Rakhman & Andi Naufal & Salsa bil ula",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/justletmecodegithub/pweb-express-p30-2025-/issues"
   },
   "homepage": "https://github.com/justletmecodegithub/pweb-express-p30-2025-#readme",
   "dependencies": {
-    "@prisma/client": "^6.17.1",
+    "@prisma/client": "^6.18.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -41,10 +41,10 @@
     "@types/bcrypt": "^6.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
+    "@types/express": "^5.0.4",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.9.1",
-    "prisma": "^6.17.1",
+    "prisma": "^6.18.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   }

@@ -1,221 +1,190 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma/client';
 
-export const getAllGenres = async (req: Request, res: Response) => {
+// ✅ Create Genre - PERBAIKI RESPONSE MESSAGE
+export const createGenre = async (req: Request, res: Response) => {
   try {
-    const genres = await prisma.genre.findMany({
-      orderBy: { name: 'asc' }
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: 'Missing required field: name' });
+
+    const existing = await prisma.genres.findUnique({ where: { name } });
+    if (existing) return res.status(400).json({ success: false, message: 'Genre already exists' });
+
+    const now = new Date();
+
+    const genre = await prisma.genres.create({
+      data: {
+        name,
+        created_at: now,
+        updated_at: now,
+      },
     });
 
-    res.json({
-      success: true,
-      data: genres
+    res.status(201).json({ 
+      success: true, 
+      message: 'Genre created successfully', // RESPONSE SESUAI DOKUMEN
+      data: genre 
     });
-  } catch (error) {
-    console.error('Get all genres error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Internal server error' 
-    });
+  } catch (err) {
+    console.error('Create genre error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
+// ✅ Get All Genres - TAMBAH PAGINATION & FILTER
+export const getAllGenres = async (req: Request, res: Response) => {
+  try {
+    const { page = '1', limit = '10', search, orderByName = 'asc' } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    const where: any = {
+      deleted_at: null // Hanya genre yang tidak di soft delete
+    };
+
+    if (search) {
+      where.name = {
+        contains: search as string,
+        mode: 'insensitive'
+      };
+    }
+
+    const [genres, total] = await Promise.all([
+      prisma.genres.findMany({
+        where,
+        orderBy: {
+          name: orderByName as 'asc' | 'desc'
+        },
+        skip,
+        take: limitNum,
+        select: {
+          id: true,
+          name: true
+        }
+      }),
+      prisma.genres.count({ where })
+    ]);
+
+    const totalPages = Math.ceil(total / limitNum);
+
+    res.json({ 
+      success: true, 
+      message: 'Get all genre successfully',
+      data: genres,
+      meta: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages,
+        prev_page: pageNum > 1 ? pageNum - 1 : null,
+        next_page: pageNum < totalPages ? pageNum + 1 : null
+      }
+    });
+  } catch (err) {
+    console.error('Get all genres error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// ✅ Get Genre Detail - PERBAIKI YANG ERROR
 export const getGenreDetail = async (req: Request, res: Response) => {
   try {
     const { genre_id } = req.params;
-    const genreId = parseInt(genre_id);
 
-    if (isNaN(genreId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid genre ID'
-      });
-    }
-
-    const genre = await prisma.genre.findUnique({
-      where: { id: genreId },
-      include: {
+    const genre = await prisma.genres.findUnique({
+      where: { 
+        id: genre_id,
+        deleted_at: null // Hanya yang tidak di soft delete
+      },
+      include: { 
         books: {
-          select: {
-            id: true,
-            title: true,
-            author: true,
-            price: true,
-            stock: true
+          where: {
+            deleted_at: null // Hanya buku yang tidak di soft delete
           }
-        }
-      }
+        } 
+      },
     });
 
     if (!genre) {
-      return res.status(404).json({
-        success: false,
-        message: 'Genre not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Genre not found' 
       });
     }
 
-    res.json({
-      success: true,
-      data: genre
+    res.json({ 
+      success: true, 
+      message: 'Get genre detail successfully',
+      data: genre 
     });
-  } catch (error) {
-    console.error('Get genre detail error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Internal server error' 
-    });
+  } catch (err) {
+    console.error('Get genre detail error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-export const createGenre = async (req: Request, res: Response) => {
-  try {
-    const { name, description } = req.body;
-
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Genre name is required'
-      });
-    }
-
-    const existingGenre = await prisma.genre.findUnique({
-      where: { name }
-    });
-
-    if (existingGenre) {
-      return res.status(400).json({
-        success: false,
-        message: 'Genre name already exists'
-      });
-    }
-
-    const genre = await prisma.genre.create({
-      data: {
-        name,
-        description: description || null
-      }
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Genre created successfully',
-      data: genre
-    });
-  } catch (error) {
-    console.error('Create genre error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Internal server error' 
-    });
-  }
-};
-
+// ✅ Update Genre - PERBAIKI RESPONSE
 export const updateGenre = async (req: Request, res: Response) => {
   try {
     const { genre_id } = req.params;
-    const { name, description } = req.body;
-    const genreId = parseInt(genre_id);
+    const { name } = req.body;
 
-    if (isNaN(genreId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid genre ID'
-      });
-    }
+    const genre = await prisma.genres.findUnique({ 
+      where: { 
+        id: genre_id,
+        deleted_at: null 
+      } 
+    });
+    if (!genre) return res.status(404).json({ success: false, message: 'Genre not found' });
 
-    const existingGenre = await prisma.genre.findUnique({
-      where: { id: genreId }
+    const updated = await prisma.genres.update({ 
+      where: { id: genre_id }, 
+      data: { 
+        name,
+        updated_at: new Date()
+      } 
     });
 
-    if (!existingGenre) {
-      return res.status(404).json({
-        success: false,
-        message: 'Genre not found'
-      });
-    }
-
-    if (name && name !== existingGenre.name) {
-      const nameExists = await prisma.genre.findUnique({
-        where: { name }
-      });
-
-      if (nameExists) {
-        return res.status(400).json({
-          success: false,
-          message: 'Genre name already exists'
-        });
-      }
-    }
-
-    const updatedGenre = await prisma.genre.update({
-      where: { id: genreId },
-      data: {
-        ...(name && { name }),
-        ...(description !== undefined && { description })
-      }
+    res.json({ 
+      success: true, 
+      message: 'Genre updated successfully', // RESPONSE SESUAI DOKUMEN
+      data: updated 
     });
-
-    res.json({
-      success: true,
-      message: 'Genre updated successfully',
-      data: updatedGenre
-    });
-  } catch (error) {
-    console.error('Update genre error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Internal server error' 
-    });
+  } catch (err) {
+    console.error('Update genre error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
+// ✅ Delete Genre - UBAH KE SOFT DELETE
 export const deleteGenre = async (req: Request, res: Response) => {
   try {
     const { genre_id } = req.params;
-    const genreId = parseInt(genre_id);
+    const genre = await prisma.genres.findUnique({ 
+      where: { 
+        id: genre_id,
+        deleted_at: null 
+      } 
+    });
+    
+    if (!genre) return res.status(404).json({ success: false, message: 'Genre not found' });
 
-    if (isNaN(genreId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid genre ID'
-      });
-    }
-
-    const genre = await prisma.genre.findUnique({
-      where: { id: genreId }
+    // SOFT DELETE - update deleted_at
+    await prisma.genres.update({
+      where: { id: genre_id },
+      data: { 
+        deleted_at: new Date(),
+        updated_at: new Date()
+      }
     });
 
-    if (!genre) {
-      return res.status(404).json({
-        success: false,
-        message: 'Genre not found'
-      });
-    }
-
-    const genreBooks = await prisma.book.findFirst({
-      where: { genreId }
+    res.json({ 
+      success: true, 
+      message: 'Genre removed successfully' // RESPONSE SESUAI DOKUMEN
     });
-
-    if (genreBooks) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot delete genre that has books'
-      });
-    }
-
-    await prisma.genre.delete({
-      where: { id: genreId }
-    });
-
-    res.json({
-      success: true,
-      message: 'Genre deleted successfully'
-    });
-  } catch (error) {
-    console.error('Delete genre error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Internal server error' 
-    });
+  } catch (err) {
+    console.error('Delete genre error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
