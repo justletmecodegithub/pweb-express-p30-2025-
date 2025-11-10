@@ -3,22 +3,22 @@ import {
   createTransaction,
   getAllTransactions,
   getTransactionDetail,
-  getTransactionStats // PASTIKAN INI DIIMPORT
+  getTransactionStats
 } from '../controllers/transactionsController';
 import authMiddleware from '../middlewares/authMiddleware';
 
 const router = Router();
 
-// Buat transaksi → pakai token user
-router.post('/', authMiddleware, createTransaction);
+// 📊 Statistik transaksi — letakkan paling atas
+router.get('/statistics', authMiddleware, getTransactionStats);
 
-// Get semua transaksi
-router.get('/', authMiddleware, getAllTransactions);
-
-// Detail transaksi
+// 🔍 Detail transaksi — letakkan sebelum getAll
 router.get('/:transaction_id', authMiddleware, getTransactionDetail);
 
-// Get statistics - ENDPOINT BARU
-router.get('/statistics', authMiddleware, getTransactionStats); // PASTIKAN getTransactionStats BUKAN getTransactionStat
+// 🧾 Semua transaksi
+router.get('/', authMiddleware, getAllTransactions);
+
+// ➕ Buat transaksi baru
+router.post('/', authMiddleware, createTransaction);
 
 export default router;
